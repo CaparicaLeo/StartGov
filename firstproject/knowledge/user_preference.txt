@@ -1,0 +1,4 @@
+User name is Leonardo Caparica.
+User is an Computer Science Student.
+User is interested in AI Agents.
+User is based in Guarapuaval, Paraná.

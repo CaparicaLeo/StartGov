@@ -1,24 +1,21 @@
-research_task:
+task_fetch_licitacoes:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
+    Faça uma requisição à API REST e recupere todas as licitações disponíveis no sistema.
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    Lista de licitações com todos os campos retornados pela API.
+  agent: api_agent
 
-reporting_task:
+task_filtrar_abertas:
   description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    A partir da lista de licitações coletadas, filtre somente as que estiverem com status "aberta"
+    e extraia os itens solicitados para cada uma delas.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    Lista contendo somente licitações abertas com seus respectivos itens.
+  agent: filter_agent
 
-data_task:
+task_salvar_json:
   description: >
-    Rewiew the data into the json and for each register, collect only the usefull atributtes.
+    Salve a lista de licitações abertas e seus itens no arquivo chamado "licitacoes_abertas.json".
   expected_output: >
-    A fully json with the selected datas
-  agent: data_analyst
+    Um arquivo JSON salvo no diretório do projeto com os dados tratados.
+  agent: json_agent

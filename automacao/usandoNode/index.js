@@ -1,77 +1,168 @@
 const puppeteer = require("puppeteer");
 const axios = require("axios");
 
-async function enviarWebHook(urlAtual, browser) {
+/**
+ * Função final: Envia os dados para o webhook e fecha o navegador.
+ * @param {object} dados - Os dados extraídos para enviar no webhook.
+ * @param {import('puppeteer').Browser} browser - A instância do navegador para fechar.
+ */
+async function enviarWebHook(dados, browser) {
 	try {
-		console.log("URL atual:", urlAtual);
-
 		const webhookUrl =
 			"https://n8n.monitoramentogovernize.tech/webhook-test/dados-login";
 
+		console.log("Enviando dados para o n8n...");
 		await axios.post(webhookUrl, {
-			mensagem: "Login concluído com sucesso!",
-			urlAtual: urlAtual,
-			email: "donne.santos@bettegacob.com.br",
+			status: "Sucesso",
+			quantidadeResultados: dados.length,
+			resultados: dados,
+			emailUsado: "donne.santos@bettegacob.com.br",
 		});
 
 		console.log("Dados enviados para o n8n com sucesso!");
 	} catch (err) {
 		console.error("Erro ao enviar webhook:", err.message);
 	} finally {
+		console.log("Fechando o navegador.");
 		await browser.close();
 	}
 }
 
+/**
+ * Realiza o login na plataforma Novavidati.
+ * @returns {Promise<{browser: import('puppeteer').Browser, page: import('puppeteer').Page}|null>}
+ */
 async function realizarLogin() {
-	const browser = await puppeteer.launch({
-		headless: false,
-		args: ["--no-sandbox", "--disable-setuid-sandbox"],
-	});
-
-	const page = await browser.newPage();
-
+	let browser;
 	try {
+		browser = await puppeteer.launch({
+			headless: false,
+			args: [
+				"--no-sandbox",
+				"--disable-setuid-sandbox",
+				"--start-maximized",
+			],
+			defaultViewport: null,
+		});
+
+		const page = await browser.newPage();
+
+		console.log("Navegando para a página de login...");
 		await page.goto("https://next.novavidati.com.br/login/index", {
 			waitUntil: "networkidle2",
 		});
 
+		console.log("Preenchendo credenciais...");
 		await page.type("#Email", "donne.santos@bettegacob.com.br");
 		await page.type("#Senha", "Ennody0604!");
 		await page.click("#btnEntrarLogin");
 
-		// Espera 2 segundos
-		await new Promise((resolve) => setTimeout(resolve, 2000));
-
-		const modalFechar = await page.$("#modalLogin a.close-modal");
-		if (modalFechar) {
+		try {
+			await page.waitForSelector("#modalLogin a.close-modal", {
+				timeout: 3000,
+			});
 			console.log("Modal detectado, fechando...");
-			await modalFechar.click();
-
+			await page.click("#modalLogin a.close-modal");
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 			await page.click("#btnEntrarLogin");
+		} catch (e) {
+			console.log("Nenhum modal de login detectado, continuando...");
 		}
 
+		console.log("Aguardando navegação após o login...");
 		await page.waitForNavigation({ waitUntil: "networkidle2" });
+		console.log("Login concluído com sucesso!");
 
-		const urlAtual = await page.url();
-		console.log("Login concluído!");
-
-		return { urlAtual, browser };
+		return { browser, page };
 	} catch (error) {
-		console.error("Erro durante o login:", error.message);
-		await browser.close();
+		console.error("Erro fatal durante o login:", error.message);
+		if (browser) await browser.close();
+		return null;
 	}
 }
 
-async function extrairLista(browser) {
-  
+/**
+ * Navega, aplica os filtros e extrai a lista de resultados.
+ * @param {import('puppeteer').Page} page - A página já logada.
+ * @returns {Promise<object[]|null>} - Uma lista de resultados ou nulo em caso de erro.
+ */
+
+// As funções enviarWebHook e realizarLogin continuam as mesmas da última versão.
+
+async function filtrarEExtrairLista(page) {
+	try {
+		// 1. Navegar para a página de prospecção
+		console.log("Acessando a área de prospecção...");
+		const prospectarSelector = "a[href='/empresa/index']";
+		await page.waitForSelector(prospectarSelector, { visible: true });
+		await page.click(prospectarSelector);
+
+		
+		const seletorBotaoLimpar = "#btn-limpar-filtros-pj";
+		await page.waitForSelector(seletorBotaoLimpar, { visible: true });
+		console.log("Página de prospecção carregada, botão 'Limpar' visível.");
+
+		await page.click(seletorBotaoLimpar);
+		console.log("Filtros limpos.");
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		// 2. Abrir o painel de filtros
+		console.log("Abrindo painel de filtros...");
+		await page.click("div.item:nth-child(4) > p:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		console.log("Painel de filtros aberto.");
+
+		// 4. Clicar no botão final para filtrar
+		console.log("Aplicando a estratégia de filtro...");
+		// Este XPath procura por um botão DENTRO do modal que contenha o texto "Filtrar".
+		// Se o texto for "Aplicar", basta trocar a palavra.
+		const aplicarFiltroXPath =
+			"//div[@id='modalFiltroPJEstrategia']//button[contains(., 'Filtrar')]";
+		await page.waitForSelector(`xpath/${aplicarFiltroXPath}`, {
+			visible: true,
+		});
+		await page.click(`xpath/${aplicarFiltroXPath}`);
+
+		// 5. Salvar a lista
+		console.log("Salvando a lista...");
+		const inputTituloSelector = "#titulo-lista-extracao-novo";
+		await page.waitForSelector(inputTituloSelector, {
+			visible: true,
+			timeout: 60000,
+		}); // 60 segundos
+		await page.type(inputTituloSelector, "Lista de Teste Automatizada");
+
+		await page.click("#btn-salvar-lista");
+		console.log("Lista salva. Aguardando processamento...");
+		await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+
+		console.log(
+			"Processo de filtragem e salvamento concluído com sucesso!"
+		);
+		return [{ status: "Lista criada com sucesso" }];
+	} catch (error) {
+		console.error("Erro ao filtrar e extrair a lista:", error);
+		return null;
+	}
 }
 
-
+/**
+ * Função principal que orquestra todo o processo.
+ */
 (async () => {
-	const resultado = await realizarLogin();
+	// Passo 1: Fazer Login
+	const loginInfo = await realizarLogin();
 
-	if (resultado) {
-		await enviarWebHook(resultado.urlAtual, resultado.browser);
+	if (loginInfo) {
+		// Passo 2: Filtrar e Extrair os Dados
+		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page);
+
+		// Passo 3: Enviar o Webhook com os dados e fechar
+		if (dadosExtraidos) {
+			await enviarWebHook(dadosExtraidos, loginInfo.browser);
+		} else {
+			console.log("Nenhum dado foi extraído, fechando o navegador.");
+			await loginInfo.browser.close();
+		}
 	}
 })();

@@ -91,13 +91,11 @@ async function realizarLogin() {
 
 async function filtrarEExtrairLista(page) {
 	try {
-		// 1. Navegar para a página de prospecção
 		console.log("Acessando a área de prospecção...");
 		const prospectarSelector = "a[href='/empresa/index']";
 		await page.waitForSelector(prospectarSelector, { visible: true });
 		await page.click(prospectarSelector);
 
-		
 		const seletorBotaoLimpar = "#btn-limpar-filtros-pj";
 		await page.waitForSelector(seletorBotaoLimpar, { visible: true });
 		console.log("Página de prospecção carregada, botão 'Limpar' visível.");
@@ -106,24 +104,40 @@ async function filtrarEExtrairLista(page) {
 		console.log("Filtros limpos.");
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 
-		// 2. Abrir o painel de filtros
 		console.log("Abrindo painel de filtros...");
 		await page.click("div.item:nth-child(4) > p:nth-child(1)");
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 		console.log("Painel de filtros aberto.");
 
-		// 4. Clicar no botão final para filtrar
 		console.log("Aplicando a estratégia de filtro...");
 		// Este XPath procura por um botão DENTRO do modal que contenha o texto "Filtrar".
 		// Se o texto for "Aplicar", basta trocar a palavra.
-		const aplicarFiltroXPath =
-			"//div[@id='modalFiltroPJEstrategia']//button[contains(., 'Filtrar')]";
-		await page.waitForSelector(`xpath/${aplicarFiltroXPath}`, {
-			visible: true,
-		});
-		await page.click(`xpath/${aplicarFiltroXPath}`);
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"MICRO"
+		);
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"PEQUENA"
+		);
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"MÉDIA"
+		);
 
-		// 5. Salvar a lista
+		// Espera o switcher estar visível
+		await page.waitForSelector(
+			"div.form-check.form-check-inline .ui-switcher",
+			{ visible: true }
+		);
+
+		// Clica nele
+		await page.click("div.form-check.form-check-inline .ui-switcher");
+
+		const FLMovel = await page.$("#FLMOVEL");
+		await FLMovel.evaluate((e) => e.scrollIntoView());
+		await FLMovel.click();
+
 		console.log("Salvando a lista...");
 		const inputTituloSelector = "#titulo-lista-extracao-novo";
 		await page.waitForSelector(inputTituloSelector, {
@@ -132,7 +146,9 @@ async function filtrarEExtrairLista(page) {
 		}); // 60 segundos
 		await page.type(inputTituloSelector, "Lista de Teste Automatizada");
 
-		await page.click("#btn-salvar-lista");
+		await page.click(
+			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
+		);
 		console.log("Lista salva. Aguardando processamento...");
 		await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 

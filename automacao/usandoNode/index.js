@@ -124,19 +124,20 @@ async function filtrarEExtrairLista(page) {
 			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
 			"MÉDIA"
 		);
+		// até aqui funciona
 
-		// Espera o switcher estar visível
-		await page.waitForSelector(
-			"div.form-check.form-check-inline .ui-switcher",
-			{ visible: true }
+		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
+		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
+
+		// Clica no switcher visual (o primeiro dentro do grupo)
+		await page.click(
+			"div.filtro-lateral-conteudo:nth-child(7) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
 		);
 
-		// Clica nele
-		await page.click("div.form-check.form-check-inline .ui-switcher");
-
-		const FLMovel = await page.$("#FLMOVEL");
-		await FLMovel.evaluate((e) => e.scrollIntoView());
-		await FLMovel.click();
+		await page.waitForSelector("#FLMOVEL", { timeout: 10000 });
+		await page.click(
+			"div.filtro-lateral-conteudo:nth-child(8) > div:nth-child(2) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div:nth-child(1)"
+		)
 
 		console.log("Salvando a lista...");
 		const inputTituloSelector = "#titulo-lista-extracao-novo";

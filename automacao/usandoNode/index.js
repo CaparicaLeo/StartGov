@@ -124,8 +124,6 @@ async function filtrarEExtrairLista(page) {
 			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
 			"MÉDIA"
 		);
-		// até aqui funciona
-
 		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
 		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
 
@@ -137,8 +135,12 @@ async function filtrarEExtrairLista(page) {
 		await page.waitForSelector("#FLMOVEL", { timeout: 10000 });
 		await page.click(
 			"div.filtro-lateral-conteudo:nth-child(8) > div:nth-child(2) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div:nth-child(1)"
-		)
+		);
 
+		//funciona até aqui
+		await page.click(
+			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
+		);
 		console.log("Salvando a lista...");
 		const inputTituloSelector = "#titulo-lista-extracao-novo";
 		await page.waitForSelector(inputTituloSelector, {
@@ -147,11 +149,19 @@ async function filtrarEExtrairLista(page) {
 		}); // 60 segundos
 		await page.type(inputTituloSelector, "Lista de Teste Automatizada");
 
-		await page.click(
-			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
-		);
+		await page.waitForSelector("#btn-salvar-lista", { visible: true });
+		await page.evaluate(() => {
+			const loader = document.querySelector(
+				"#btn-salvar-lista-status-salvando"
+			);
+			if (loader && getComputedStyle(loader).display !== "none") return;
+
+			const btn = document.querySelector("#btn-salvar-lista");
+			if (btn) btn.click();
+		});
+
 		console.log("Lista salva. Aguardando processamento...");
-		await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+		//await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 
 		console.log(
 			"Processo de filtragem e salvamento concluído com sucesso!"

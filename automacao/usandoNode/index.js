@@ -89,7 +89,7 @@ async function realizarLogin() {
 
 // As funções enviarWebHook e realizarLogin continuam as mesmas da última versão.
 
-async function filtrarEExtrairLista(page) {
+async function filtrarEExtrairLista(page, json) {
 	try {
 		console.log("Acessando a área de prospecção...");
 		const prospectarSelector = "a[href='/empresa/index']";
@@ -126,17 +126,33 @@ async function filtrarEExtrairLista(page) {
 		);
 		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
 		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
-
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 		// Clica no switcher visual (o primeiro dentro do grupo)
 		await page.click(
 			"div.filtro-lateral-conteudo:nth-child(7) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
 		);
-
+		console.log("Ativando filtro telefone");
 		await page.waitForSelector("#FLMOVEL", { timeout: 10000 });
 		await page.click(
 			"div.filtro-lateral-conteudo:nth-child(8) > div:nth-child(2) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div:nth-child(1)"
 		);
+		const prospectarSelectorVariavel = "a[href='/empresa/index']";
+		await page.waitForSelector(prospectarSelectorVariavel, { visible: true });
+		await page.click(prospectarSelectorVariavel);
 
+		// await page.click("div.item:nth-child(5) > p:nth-child(1) > small:nth-child(1)");
+		await page.click("div.item:nth-child(5) > p:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 20000));
+		await page.click("div.col-md-3:nth-child(2) > div:nth-child(1) > div:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 11000));
+
+		await selecionarOpcaoSelect2(page,"#linha-cnae-primario",json.CNAEPRIMARIO)
+		// await page.type(
+		// 	"#linha-cnae-primario > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > span:nth-child(1) > span:nth-child(1) > ul:nth-child(1) > li:nth-child(1) > input:nth-child(1)",
+		// 	json.CNAEPRIMARIO
+		// );
+
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 		//funciona até aqui
 		await page.click(
 			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
@@ -147,7 +163,7 @@ async function filtrarEExtrairLista(page) {
 			visible: true,
 			timeout: 60000,
 		}); // 60 segundos
-		await page.type(inputTituloSelector, "Lista de Teste Automatizada");
+		await page.type(inputTituloSelector, json.NOMEDALISTA);
 
 		await page.waitForSelector("#btn-salvar-lista", { visible: true });
 		await page.evaluate(() => {
@@ -172,17 +188,67 @@ async function filtrarEExtrairLista(page) {
 		return null;
 	}
 }
+/**
+ * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
+ * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
+ * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo (para garantir que estamos no campo certo). Ex: '#linha-cnae-primario'
+ * @param {string} termoBusca - O texto a ser digitado e selecionado (ex: o número do CNAE).
+ */
+/**
+ * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
+ * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
+ * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo.
+ * @param {string | number} termoBusca - O texto ou NÚMERO a ser digitado e selecionado.
+ */
+async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
+    const termoBuscaString = String(termoBusca);
+
+    try {
+        console.log(`Buscando o campo Select2 dentro de '${seletorContainer}'...`);
+        const seletorInput = `${seletorContainer} .select2-search__field`;
+        
+        await page.type(seletorInput, termoBuscaString, { delay: 100 });
+        console.log(`Termo '${termoBuscaString}' digitado.`);
+
+        const seletorResultadoXPath = `//li[contains(@class, 'select2-results__option') and contains(., '${termoBuscaString}')]`;
+        
+        // --- CORREÇÃO E SIMPLIFICAÇÃO APLICADA AQUI ---
+        // Criamos o seletor XPath completo que será usado para esperar e clicar.
+        const seletorXPathCompleto = `xpath/${seletorResultadoXPath}`;
+
+        console.log("Aguardando o resultado da busca aparecer...");
+        await page.waitForSelector(seletorXPathCompleto, { visible: true, timeout: 10000 });
+        
+        console.log("Clicando diretamente no resultado encontrado...");
+        // Em vez de usar .page$x() e depois .click(), usamos page.click() diretamente com o seletor.
+        await page.click(seletorXPathCompleto);
+        
+        console.log(`Opção '${termoBuscaString}' selecionada com sucesso.`);
+        
+        await page.waitForTimeout(500); 
+
+    } catch (error) {
+        console.error(`Erro ao selecionar a opção '${termoBuscaString}' no Select2:`, error);
+        throw error;
+    }
+}
 
 /**
  * Função principal que orquestra todo o processo.
  */
 (async () => {
 	// Passo 1: Fazer Login
-	const loginInfo = await realizarLogin();
+	const json = {
+		CNAEPRIMARIO: 181,
+		ESTADO: "PARANÁ",
+		CIDADE: "CURITIBA",
+		NOMEDALISTA: "TESTE 1",
+	};
 
+	const loginInfo = await realizarLogin();
 	if (loginInfo) {
 		// Passo 2: Filtrar e Extrair os Dados
-		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page);
+		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page, json);
 
 		// Passo 3: Enviar o Webhook com os dados e fechar
 		if (dadosExtraidos) {

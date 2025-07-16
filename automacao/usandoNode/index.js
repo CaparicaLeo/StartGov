@@ -1,77 +1,261 @@
 const puppeteer = require("puppeteer");
 const axios = require("axios");
 
-async function enviarWebHook(urlAtual, browser) {
+/**
+ * Função final: Envia os dados para o webhook e fecha o navegador.
+ * @param {object} dados - Os dados extraídos para enviar no webhook.
+ * @param {import('puppeteer').Browser} browser - A instância do navegador para fechar.
+ */
+async function enviarWebHook(dados, browser) {
 	try {
-		console.log("URL atual:", urlAtual);
-
 		const webhookUrl =
 			"https://n8n.monitoramentogovernize.tech/webhook-test/dados-login";
 
+		console.log("Enviando dados para o n8n...");
 		await axios.post(webhookUrl, {
-			mensagem: "Login concluído com sucesso!",
-			urlAtual: urlAtual,
-			email: "donne.santos@bettegacob.com.br",
+			status: "Sucesso",
+			quantidadeResultados: dados.length,
+			resultados: dados,
+			emailUsado: "donne.santos@bettegacob.com.br",
 		});
 
 		console.log("Dados enviados para o n8n com sucesso!");
 	} catch (err) {
 		console.error("Erro ao enviar webhook:", err.message);
 	} finally {
+		console.log("Fechando o navegador.");
 		await browser.close();
 	}
 }
 
+/**
+ * Realiza o login na plataforma Novavidati.
+ * @returns {Promise<{browser: import('puppeteer').Browser, page: import('puppeteer').Page}|null>}
+ */
 async function realizarLogin() {
-	const browser = await puppeteer.launch({
-		headless: false,
-		args: ["--no-sandbox", "--disable-setuid-sandbox"],
-	});
-
-	const page = await browser.newPage();
-
+	let browser;
 	try {
+		browser = await puppeteer.launch({
+			headless: false,
+			args: [
+				"--no-sandbox",
+				"--disable-setuid-sandbox",
+				"--start-maximized",
+			],
+			defaultViewport: null,
+		});
+
+		const page = await browser.newPage();
+
+		console.log("Navegando para a página de login...");
 		await page.goto("https://next.novavidati.com.br/login/index", {
 			waitUntil: "networkidle2",
 		});
 
+		console.log("Preenchendo credenciais...");
 		await page.type("#Email", "donne.santos@bettegacob.com.br");
 		await page.type("#Senha", "Ennody0604!");
 		await page.click("#btnEntrarLogin");
 
-		// Espera 2 segundos
-		await new Promise((resolve) => setTimeout(resolve, 2000));
-
-		const modalFechar = await page.$("#modalLogin a.close-modal");
-		if (modalFechar) {
+		try {
+			await page.waitForSelector("#modalLogin a.close-modal", {
+				timeout: 3000,
+			});
 			console.log("Modal detectado, fechando...");
-			await modalFechar.click();
-
+			await page.click("#modalLogin a.close-modal");
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 			await page.click("#btnEntrarLogin");
+		} catch (e) {
+			console.log("Nenhum modal de login detectado, continuando...");
 		}
 
+		console.log("Aguardando navegação após o login...");
 		await page.waitForNavigation({ waitUntil: "networkidle2" });
+		console.log("Login concluído com sucesso!");
 
-		const urlAtual = await page.url();
-		console.log("Login concluído!");
-
-		return { urlAtual, browser };
+		return { browser, page };
 	} catch (error) {
-		console.error("Erro durante o login:", error.message);
-		await browser.close();
+		console.error("Erro fatal durante o login:", error.message);
+		if (browser) await browser.close();
+		return null;
 	}
 }
 
-async function extrairLista(browser) {
-  
+/**
+ * Navega, aplica os filtros e extrai a lista de resultados.
+ * @param {import('puppeteer').Page} page - A página já logada.
+ * @returns {Promise<object[]|null>} - Uma lista de resultados ou nulo em caso de erro.
+ */
+
+// As funções enviarWebHook e realizarLogin continuam as mesmas da última versão.
+
+async function filtrarEExtrairLista(page, json) {
+	try {
+		console.log("Acessando a área de prospecção...");
+		const prospectarSelector = "a[href='/empresa/index']";
+		await page.waitForSelector(prospectarSelector, { visible: true });
+		await page.click(prospectarSelector);
+
+		const seletorBotaoLimpar = "#btn-limpar-filtros-pj";
+		await page.waitForSelector(seletorBotaoLimpar, { visible: true });
+		console.log("Página de prospecção carregada, botão 'Limpar' visível.");
+
+		await page.click(seletorBotaoLimpar);
+		console.log("Filtros limpos.");
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		console.log("Abrindo painel de filtros...");
+		await page.click("div.item:nth-child(4) > p:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		console.log("Painel de filtros aberto.");
+
+		console.log("Aplicando a estratégia de filtro...");
+		// Este XPath procura por um botão DENTRO do modal que contenha o texto "Filtrar".
+		// Se o texto for "Aplicar", basta trocar a palavra.
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"MICRO"
+		);
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"PEQUENA"
+		);
+		await page.select(
+			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
+			"MÉDIA"
+		);
+		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
+		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
+		await new Promise((resolve) => setTimeout(resolve, 10000));
+		// Clica no switcher visual (o primeiro dentro do grupo)
+		await page.click(
+			"div.filtro-lateral-conteudo:nth-child(7) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
+		);
+		console.log("Ativando filtro telefone");
+		await page.waitForSelector("#FLMOVEL", { timeout: 10000 });
+		await page.click(
+			"div.filtro-lateral-conteudo:nth-child(8) > div:nth-child(2) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div:nth-child(1)"
+		);
+		const prospectarSelectorVariavel = "a[href='/empresa/index']";
+		await page.waitForSelector(prospectarSelectorVariavel, { visible: true });
+		await page.click(prospectarSelectorVariavel);
+
+		// await page.click("div.item:nth-child(5) > p:nth-child(1) > small:nth-child(1)");
+		await page.click("div.item:nth-child(5) > p:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 20000));
+		await page.click("div.col-md-3:nth-child(2) > div:nth-child(1) > div:nth-child(1)");
+		await new Promise((resolve) => setTimeout(resolve, 11000));
+
+		await selecionarOpcaoSelect2(page,"#linha-cnae-primario",json.CNAEPRIMARIO)
+		// await page.type(
+		// 	"#linha-cnae-primario > div:nth-child(1) > div:nth-child(1) > span:nth-child(2) > span:nth-child(1) > span:nth-child(1) > ul:nth-child(1) > li:nth-child(1) > input:nth-child(1)",
+		// 	json.CNAEPRIMARIO
+		// );
+
+		await new Promise((resolve) => setTimeout(resolve, 10000));
+		//funciona até aqui
+		await page.click(
+			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
+		);
+		console.log("Salvando a lista...");
+		const inputTituloSelector = "#titulo-lista-extracao-novo";
+		await page.waitForSelector(inputTituloSelector, {
+			visible: true,
+			timeout: 60000,
+		}); // 60 segundos
+		await page.type(inputTituloSelector, json.NOMEDALISTA);
+
+		await page.waitForSelector("#btn-salvar-lista", { visible: true });
+		await page.evaluate(() => {
+			const loader = document.querySelector(
+				"#btn-salvar-lista-status-salvando"
+			);
+			if (loader && getComputedStyle(loader).display !== "none") return;
+
+			const btn = document.querySelector("#btn-salvar-lista");
+			if (btn) btn.click();
+		});
+
+		console.log("Lista salva. Aguardando processamento...");
+		//await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+
+		console.log(
+			"Processo de filtragem e salvamento concluído com sucesso!"
+		);
+		return [{ status: "Lista criada com sucesso" }];
+	} catch (error) {
+		console.error("Erro ao filtrar e extrair a lista:", error);
+		return null;
+	}
+}
+/**
+ * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
+ * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
+ * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo (para garantir que estamos no campo certo). Ex: '#linha-cnae-primario'
+ * @param {string} termoBusca - O texto a ser digitado e selecionado (ex: o número do CNAE).
+ */
+/**
+ * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
+ * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
+ * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo.
+ * @param {string | number} termoBusca - O texto ou NÚMERO a ser digitado e selecionado.
+ */
+async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
+    const termoBuscaString = String(termoBusca);
+
+    try {
+        console.log(`Buscando o campo Select2 dentro de '${seletorContainer}'...`);
+        const seletorInput = `${seletorContainer} .select2-search__field`;
+        
+        await page.type(seletorInput, termoBuscaString, { delay: 100 });
+        console.log(`Termo '${termoBuscaString}' digitado.`);
+
+        const seletorResultadoXPath = `//li[contains(@class, 'select2-results__option') and contains(., '${termoBuscaString}')]`;
+        
+        // --- CORREÇÃO E SIMPLIFICAÇÃO APLICADA AQUI ---
+        // Criamos o seletor XPath completo que será usado para esperar e clicar.
+        const seletorXPathCompleto = `xpath/${seletorResultadoXPath}`;
+
+        console.log("Aguardando o resultado da busca aparecer...");
+        await page.waitForSelector(seletorXPathCompleto, { visible: true, timeout: 10000 });
+        
+        console.log("Clicando diretamente no resultado encontrado...");
+        // Em vez de usar .page$x() e depois .click(), usamos page.click() diretamente com o seletor.
+        await page.click(seletorXPathCompleto);
+        
+        console.log(`Opção '${termoBuscaString}' selecionada com sucesso.`);
+        
+        await page.waitForTimeout(500); 
+
+    } catch (error) {
+        console.error(`Erro ao selecionar a opção '${termoBuscaString}' no Select2:`, error);
+        throw error;
+    }
 }
 
-
+/**
+ * Função principal que orquestra todo o processo.
+ */
 (async () => {
-	const resultado = await realizarLogin();
+	// Passo 1: Fazer Login
+	const json = {
+		CNAEPRIMARIO: 181,
+		ESTADO: "PARANÁ",
+		CIDADE: "CURITIBA",
+		NOMEDALISTA: "TESTE 1",
+	};
 
-	if (resultado) {
-		await enviarWebHook(resultado.urlAtual, resultado.browser);
+	const loginInfo = await realizarLogin();
+	if (loginInfo) {
+		// Passo 2: Filtrar e Extrair os Dados
+		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page, json);
+
+		// Passo 3: Enviar o Webhook com os dados e fechar
+		if (dadosExtraidos) {
+			await enviarWebHook(dadosExtraidos, loginInfo.browser);
+		} else {
+			console.log("Nenhum dado foi extraído, fechando o navegador.");
+			await loginInfo.browser.close();
+		}
 	}
 })();

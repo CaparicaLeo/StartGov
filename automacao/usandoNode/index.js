@@ -240,9 +240,9 @@ async function filtrarEExtrairLista(page, json) {
 			`#retorno-busca-localidade-pj-${json.ESTADO} > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)`
 		);
 		await new Promise((resolve) => setTimeout(resolve, 7000));
-
+		await page.click('#modalFiltroLocalizacaoPJ > div:nth-child(1) > button:nth-child(1)')
 		await page.click(
-			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
+			".botoes-acoes > button:nth-child(2)"
 		);
 		console.log("Salvando a lista...");
 		const inputTituloSelector = "#titulo-lista-extracao-novo";

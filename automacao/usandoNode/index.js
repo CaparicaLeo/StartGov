@@ -106,6 +106,7 @@ async function filtrarEExtrairLista(page, json) {
 
 		console.log("Abrindo painel de filtros...");
 		await page.click("div.item:nth-child(4) > p:nth-child(1)");
+		await page.click("div.item:nth-child(4) > p:nth-child(1)");
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 		console.log("Painel de filtros aberto.");
 
@@ -126,7 +127,7 @@ async function filtrarEExtrairLista(page, json) {
 		);
 		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
 		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
-		await new Promise((resolve) => setTimeout(resolve, 12000));
+		await new Promise((resolve) => setTimeout(resolve, 15000));
 		// Clica no switcher visual (o primeiro dentro do grupo)
 		await page.click(
 			"div.filtro-lateral-conteudo:nth-child(7) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
@@ -146,11 +147,11 @@ async function filtrarEExtrairLista(page, json) {
 		await page.click("div.item:nth-child(5) > p:nth-child(1)");
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 		await page.click("div.item:nth-child(5) > p:nth-child(1)");
-		await new Promise((resolve) => setTimeout(resolve, 10000));
+		await new Promise((resolve) => setTimeout(resolve, 5000));
 		await page.click(
 			"div.col-md-3:nth-child(2) > div:nth-child(1) > div:nth-child(1)"
 		);
-		await new Promise((resolve) => setTimeout(resolve, 11000));
+		await new Promise((resolve) => setTimeout(resolve, 2000));
 
 		await selecionarOpcaoSelect2(
 			page,
@@ -161,10 +162,95 @@ async function filtrarEExtrairLista(page, json) {
 		await new Promise((resolve) => setTimeout(resolve, 10000));
 		await page.click("div.item:nth-child(7) > p:nth-child(1)");
 		await page.waitForSelector("#tab-localidade", { visible: false });
-		await new Promise((resolve)=> setTimeout(resolve, 5000))
-		await page.click(".ui-switcher");
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+		await page.click(".text-right");
 
-		
+		await new Promise((resolve) => setTimeout(resolve, 7000));
+		//funciona até aqui
+		console.log("Selecionando estado e cidade...");
+
+		const cidadeAlvo = json.CIDADE.toUpperCase();
+
+		// Espera aparecer a div do estado com data-uf
+		await page.waitForSelector(
+			`<div class="bloco-busca-cidade" data-uf="${json.ESTADO}" style="display:none"></div>`,
+			{ visible: false }
+		);
+
+		const blocoEstado = await page.$(
+			`<div class="bloco-busca-cidade" data-uf="${json.ESTADO}" style="display:none"></div>`
+		);
+
+		if (blocoEstado) {
+			// Clica na checkbox do estado, se existir
+			const checkboxEstado = await blocoEstado.$(
+				'div.item-submenu-header:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)'
+			);
+			if (checkboxEstado) {
+				await checkboxEstado.click();
+				console.log(`Checkbox do estado '${estadoUF}' marcado.`);
+			}
+
+			// Clica no link "ver cidades"
+			const botaoVerCidades = await blocoEstado.$(
+				`p.abrir-cidades-${estadoUF}`
+			);
+			if (botaoVerCidades) {
+				await botaoVerCidades.click();
+				console.log(
+					`Link 'ver cidades' do estado '${estadoUF}' clicado.`
+				);
+			}
+
+			// Espera carregar a lista de cidades
+			await page.waitForSelector(
+				`#retorno-busca-localidade-pj-${estadoUF}`,
+				{ visible: true }
+			);
+
+			// Busca a cidade dentro das divs
+			const cidadeDivs = await page.$$(
+				`#retorno-busca-localidade-pj-${estadoUF} .item-submenu`
+			);
+
+			let achou = false;
+
+			for (const div of cidadeDivs) {
+				const labelHandle = await div.$("label");
+				const texto = labelHandle
+					? (
+							await page.evaluate(
+								(el) => el.textContent.trim(),
+								labelHandle
+							)
+					  ).toUpperCase()
+					: "";
+
+				if (texto.includes(cidadeAlvo)) {
+					const checkboxCidade = await div.$(
+						'input[type="checkbox"]'
+					);
+					if (checkboxCidade) {
+						await checkboxCidade.click();
+						console.log(
+							`Checkbox da cidade '${cidadeAlvo}' clicado.`
+						);
+						achou = true;
+						break;
+					}
+				}
+			}
+
+			if (!achou) {
+				console.warn(
+					`⚠️ Cidade '${cidadeAlvo}' não encontrada para o estado '${estadoUF}'.`
+				);
+			}
+		} else {
+			console.warn(
+				`⚠️ Estado '${estadoUF}' não encontrado na interface.`
+			);
+		}
 
 		await page.click(
 			"#modalFiltroPJEstrategia > div:nth-child(1) > div:nth-child(4) > div:nth-child(11) > button:nth-child(1)"
@@ -259,7 +345,7 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 	// Passo 1: Fazer Login
 	const json = {
 		CNAEPRIMARIO: 181,
-		ESTADO: "PARANÁ",
+		ESTADO: "PR",
 		CIDADE: "CURITIBA",
 		NOMEDALISTA: "TESTE 1",
 	};

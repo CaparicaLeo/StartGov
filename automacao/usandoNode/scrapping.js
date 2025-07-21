@@ -231,8 +231,7 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 
 		const seletorResultadoXPath = `//li[contains(@class, 'select2-results__option') and contains(., '${termoBuscaString}')]`;
 
-		// --- CORREÇÃO E SIMPLIFICAÇÃO APLICADA AQUI ---
-		// Criamos o seletor XPath completo que será usado para esperar e clicar.
+	
 		const seletorXPathCompleto = `xpath/${seletorResultadoXPath}`;
 
 		console.log("Aguardando o resultado da busca aparecer...");
@@ -242,12 +241,10 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 		});
 
 		console.log("Clicando diretamente no resultado encontrado...");
-		// Em vez de usar .page$x() e depois .click(), usamos page.click() diretamente com o seletor.
+		
 		await page.click(seletorXPathCompleto);
 
 		console.log(`Opção '${termoBuscaString}' selecionada com sucesso.`);
-
-		// await new Promise((resolve) => setTimeout(resolve, 500));
 	} catch (error) {
 		console.error(
 			`Erro ao selecionar a opção '${termoBuscaString}' no Select2:`,
@@ -261,13 +258,11 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
  * Função principal que orquestra todo o processo.
  */
 async function gerarLista(json) {
-	// Passo 1: Fazer Login
 	const loginInfo = await realizarLogin();
 	if (loginInfo) {
-		// Passo 2: Filtrar e Extrair os Dados
+		
 		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page, json);
 
-		// Passo 3: Enviar o Webhook com os dados e fechar
 		if (dadosExtraidos) {
 			return true;
 		} else {

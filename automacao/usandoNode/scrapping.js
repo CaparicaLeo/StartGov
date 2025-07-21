@@ -29,28 +29,6 @@ const seletorEstadoMap = {
 	SE: "div.item-submenu-header:nth-child(26) > div:nth-child(1) > div:nth-child(1) ",
 	TO: "div.item-submenu-header:nth-child(27) > div:nth-child(1) > div:nth-child(1) ",
 };
-// async function enviarWebHook(dados, browser) {
-// 	try {
-// 		const webhookUrl =
-// 			"https://n8n.monitoramentogovernize.tech/webhook-test/dados-login";
-
-// 		console.log("Enviando dados para o n8n...");
-// 		await axios.post(webhookUrl, {
-// 			status: "Sucesso",
-// 			quantidadeResultados: dados.length,
-// 			resultados: dados,
-// 			emailUsado: "donne.santos@bettegacob.com.br",
-// 		});
-
-// 		console.log("Dados enviados para o n8n com sucesso!");
-// 	} catch (err) {
-// 		console.error("Erro ao enviar webhook:", err.message);
-// 	} finally {
-// 		console.log("Fechando o navegador.");
-// 		await browser.close();
-// 	}
-// }
-
 /**
  * Realiza o login na plataforma Novavidati.
  * @returns {Promise<{browser: import('puppeteer').Browser, page: import('puppeteer').Page}|null>}
@@ -110,8 +88,6 @@ async function realizarLogin() {
  * @returns {Promise<object[]|null>} - Uma lista de resultados ou nulo em caso de erro.
  */
 
-// As funções enviarWebHook e realizarLogin continuam as mesmas da última versão.
-
 async function filtrarEExtrairLista(page, json) {
 	try {
 		console.log("Acessando a área de prospecção...");
@@ -134,8 +110,6 @@ async function filtrarEExtrairLista(page, json) {
 		console.log("Painel de filtros aberto.");
 
 		console.log("Aplicando a estratégia de filtro...");
-		// Este XPath procura por um botão DENTRO do modal que contenha o texto "Filtrar".
-		// Se o texto for "Aplicar", basta trocar a palavra.
 		await page.select(
 			"#filtroPJEstrategia > div:nth-child(5) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > select:nth-child(1)",
 			"MICRO"
@@ -151,7 +125,6 @@ async function filtrarEExtrairLista(page, json) {
 		console.log("Ativando filtro 'Empresa Economicamente Ativa: Sim'...");
 		await page.waitForSelector("#EMPRESA_ECO_ATIVA", { timeout: 10000 });
 		await new Promise((resolve) => setTimeout(resolve, 20000));
-		// Clica no switcher visual (o primeiro dentro do grupo)
 		await page.click(
 			"div.filtro-lateral-conteudo:nth-child(7) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
 		);
@@ -166,7 +139,6 @@ async function filtrarEExtrairLista(page, json) {
 		});
 		await page.click(prospectarSelectorVariavel);
 
-		// await page.click("div.item:nth-child(5) > p:nth-child(1) > small:nth-child(1)");
 		await page.click("div.item:nth-child(5) > p:nth-child(1)");
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 		await page.click("div.item:nth-child(5) > p:nth-child(1)");
@@ -189,7 +161,6 @@ async function filtrarEExtrairLista(page, json) {
 		await page.click(".text-right");
 
 		await new Promise((resolve) => setTimeout(resolve, 7000));
-		//funciona até aqui
 		console.log("Selecionando estado e cidade...");
 
 		await page.click(seletorEstadoMap[json.ESTADO]);
@@ -228,7 +199,7 @@ async function filtrarEExtrairLista(page, json) {
 		});
 
 		console.log("Lista salva. Aguardando processamento...");
-		//await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+		await Promise((resolve)=>setTimeout(10000))
 
 		console.log(
 			"Processo de filtragem e salvamento concluído com sucesso!"

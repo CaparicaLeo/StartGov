@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer");
-const axios = require("axios");
 
 const seletorEstadoMap = {
 	AC: "div.item-submenu-header:nth-child(1) > div:nth-child(1) > div:nth-child(1)",
@@ -30,62 +29,27 @@ const seletorEstadoMap = {
 	SE: "div.item-submenu-header:nth-child(26) > div:nth-child(1) > div:nth-child(1) ",
 	TO: "div.item-submenu-header:nth-child(27) > div:nth-child(1) > div:nth-child(1) ",
 };
+// async function enviarWebHook(dados, browser) {
+// 	try {
+// 		const webhookUrl =
+// 			"https://n8n.monitoramentogovernize.tech/webhook-test/dados-login";
 
-const seletorCidadeMap = {
-	AC: "div.item-submenu-header:nth-child(1) > div:nth-child(1) > div:nth-child(1)",
-	AL: "div.item-submenu-header:nth-child(2) > div:nth-child(1) > div:nth-child(1)",
-	AP: "div.item-submenu-header:nth-child(3) > div:nth-child(1) > div:nth-child(1)",
-	AM: "div.item-submenu-header:nth-child(4) > div:nth-child(1) > div:nth-child(1) ",
-	BA: "div.item-submenu-header:nth-child(5) > div:nth-child(1) > div:nth-child(1) ",
-	CE: "div.item-submenu-header:nth-child(6) > div:nth-child(1) > div:nth-child(1) ",
-	DF: "div.item-submenu-header:nth-child(7) > div:nth-child(1) > div:nth-child(1) ",
-	ES: "div.item-submenu-header:nth-child(8) > div:nth-child(1) > div:nth-child(1) ",
-	GO: "div.item-submenu-header:nth-child(9) > div:nth-child(1) > div:nth-child(1) ",
-	MA: "div.item-submenu-header:nth-child(10) > div:nth-child(1) > div:nth-child(1) ",
-	MT: "div.item-submenu-header:nth-child(11) > div:nth-child(1) > div:nth-child(1) ",
-	MS: "div.item-submenu-header:nth-child(12) > div:nth-child(1) > div:nth-child(1) ",
-	MG: "div.item-submenu-header:nth-child(13) > div:nth-child(1) > div:nth-child(1) ",
-	PA: "div.item-submenu-header:nth-child(14) > div:nth-child(1) > div:nth-child(1) ",
-	PB: "div.item-submenu-header:nth-child(15) > div:nth-child(1) > div:nth-child(1) ",
-	PR: "div.item-submenu-header:nth-child(16) > div:nth-child(1) > div:nth-child(1) ",
-	PE: "div.item-submenu-header:nth-child(17) > div:nth-child(1) > div:nth-child(1) ",
-	PI: "div.item-submenu-header:nth-child(18) > div:nth-child(1) > div:nth-child(1) ",
-	RJ: "div.item-submenu-header:nth-child(19) > div:nth-child(1) > div:nth-child(1) ",
-	RN: "div.item-submenu-header:nth-child(20) > div:nth-child(1) > div:nth-child(1) ",
-	RS: "div.item-submenu-header:nth-child(21) > div:nth-child(1) > div:nth-child(1) ",
-	RO: "div.item-submenu-header:nth-child(22) > div:nth-child(1) > div:nth-child(1) ",
-	RR: "div.item-submenu-header:nth-child(23) > div:nth-child(1) > div:nth-child(1) ",
-	SC: "div.item-submenu-header:nth-child(24) > div:nth-child(1) > div:nth-child(1) ",
-	SP: "div.item-submenu-header:nth-child(25) > div:nth-child(1) > div:nth-child(1) ",
-	SE: "div.item-submenu-header:nth-child(26) > div:nth-child(1) > div:nth-child(1) ",
-	TO: "div.item-submenu-header:nth-child(27) > div:nth-child(1) > div:nth-child(1) ",
-};
-/**
- * Função final: Envia os dados para o webhook e fecha o navegador.
- * @param {object} dados - Os dados extraídos para enviar no webhook.
- * @param {import('puppeteer').Browser} browser - A instância do navegador para fechar.
- */
-async function enviarWebHook(dados, browser) {
-	try {
-		const webhookUrl =
-			"https://n8n.monitoramentogovernize.tech/webhook-test/dados-login";
+// 		console.log("Enviando dados para o n8n...");
+// 		await axios.post(webhookUrl, {
+// 			status: "Sucesso",
+// 			quantidadeResultados: dados.length,
+// 			resultados: dados,
+// 			emailUsado: "donne.santos@bettegacob.com.br",
+// 		});
 
-		console.log("Enviando dados para o n8n...");
-		await axios.post(webhookUrl, {
-			status: "Sucesso",
-			quantidadeResultados: dados.length,
-			resultados: dados,
-			emailUsado: "donne.santos@bettegacob.com.br",
-		});
-
-		console.log("Dados enviados para o n8n com sucesso!");
-	} catch (err) {
-		console.error("Erro ao enviar webhook:", err.message);
-	} finally {
-		console.log("Fechando o navegador.");
-		await browser.close();
-	}
-}
+// 		console.log("Dados enviados para o n8n com sucesso!");
+// 	} catch (err) {
+// 		console.error("Erro ao enviar webhook:", err.message);
+// 	} finally {
+// 		console.log("Fechando o navegador.");
+// 		await browser.close();
+// 	}
+// }
 
 /**
  * Realiza o login na plataforma Novavidati.
@@ -240,10 +204,10 @@ async function filtrarEExtrairLista(page, json) {
 			`#retorno-busca-localidade-pj-${json.ESTADO} > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)`
 		);
 		await new Promise((resolve) => setTimeout(resolve, 7000));
-		await page.click('#modalFiltroLocalizacaoPJ > div:nth-child(1) > button:nth-child(1)')
 		await page.click(
-			".botoes-acoes > button:nth-child(2)"
+			"#modalFiltroLocalizacaoPJ > div:nth-child(1) > button:nth-child(1)"
 		);
+		await page.click(".botoes-acoes > button:nth-child(2)");
 		console.log("Salvando a lista...");
 		const inputTituloSelector = "#titulo-lista-extracao-novo";
 		await page.waitForSelector(inputTituloSelector, {
@@ -275,13 +239,7 @@ async function filtrarEExtrairLista(page, json) {
 		return null;
 	}
 }
-/**
- * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
- * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
- * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo (para garantir que estamos no campo certo). Ex: '#linha-cnae-primario'
- * @param {string} termoBusca - O texto a ser digitado e selecionado (ex: o número do CNAE).
- */
-/**
+/***
  * Digita em um campo de busca Select2, aguarda o resultado e clica na opção correspondente.
  * @param {import('puppeteer').Page} page - A instância da página do Puppeteer.
  * @param {string} seletorContainer - Um seletor CSS para o contêiner principal do campo.
@@ -330,15 +288,8 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 /**
  * Função principal que orquestra todo o processo.
  */
-(async () => {
+async function gerarLista(json) {
 	// Passo 1: Fazer Login
-	const json = {
-		CNAEPRIMARIO: 181,
-		ESTADO: "PR",
-		CIDADE: "CURITIBA",
-		NOMEDALISTA: "TESTE 1",
-	};
-
 	const loginInfo = await realizarLogin();
 	if (loginInfo) {
 		// Passo 2: Filtrar e Extrair os Dados
@@ -346,10 +297,13 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 
 		// Passo 3: Enviar o Webhook com os dados e fechar
 		if (dadosExtraidos) {
-			await enviarWebHook(dadosExtraidos, loginInfo.browser);
+			return true;
 		} else {
 			console.log("Nenhum dado foi extraído, fechando o navegador.");
 			await loginInfo.browser.close();
+			return false;
 		}
 	}
-})();
+}
+
+module.exports = { gerarLista };

@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer");
+const { default: auth } = require("./auth");
 
 const seletorEstadoMap = {
 	AC: "div.item-submenu-header:nth-child(1) > div:nth-child(1) > div:nth-child(1)",
@@ -54,8 +55,8 @@ async function realizarLogin() {
 		});
 
 		console.log("Preenchendo credenciais...");
-		await page.type("#Email", "donne.santos@bettegacob.com.br");
-		await page.type("#Senha", "Ennody0604!");
+		await page.type("#Email", auth.login.email);
+		await page.type("#Senha", auth.login.senha);
 		await page.click("#btnEntrarLogin");
 
 		try {
@@ -199,7 +200,7 @@ async function filtrarEExtrairLista(page, json) {
 		});
 
 		console.log("Lista salva. Aguardando processamento...");
-		await Promise((resolve)=>setTimeout(10000))
+		await Promise((resolve) => setTimeout(10000));
 
 		console.log(
 			"Processo de filtragem e salvamento concluído com sucesso!"

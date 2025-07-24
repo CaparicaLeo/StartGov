@@ -1,5 +1,5 @@
 const puppeteer = require("puppeteer");
-const { default: auth } = require("./auth");
+const auth = require("./auth");
 
 const seletorEstadoMap = {
 	AC: "div.item-submenu-header:nth-child(1) > div:nth-child(1) > div:nth-child(1)",
@@ -200,7 +200,7 @@ async function filtrarEExtrairLista(page, json) {
 		});
 
 		console.log("Lista salva. Aguardando processamento...");
-		await Promise((resolve) => setTimeout(10000));
+		await new Promise((resolve) => setTimeout(resolve, 10000));
 
 		console.log(
 			"Processo de filtragem e salvamento concluído com sucesso!"
@@ -231,7 +231,6 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 
 		const seletorResultadoXPath = `//li[contains(@class, 'select2-results__option') and contains(., '${termoBuscaString}')]`;
 
-	
 		const seletorXPathCompleto = `xpath/${seletorResultadoXPath}`;
 
 		console.log("Aguardando o resultado da busca aparecer...");
@@ -241,7 +240,7 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 		});
 
 		console.log("Clicando diretamente no resultado encontrado...");
-		
+
 		await page.click(seletorXPathCompleto);
 
 		console.log(`Opção '${termoBuscaString}' selecionada com sucesso.`);
@@ -260,10 +259,10 @@ async function selecionarOpcaoSelect2(page, seletorContainer, termoBusca) {
 async function gerarLista(json) {
 	const loginInfo = await realizarLogin();
 	if (loginInfo) {
-		
 		const dadosExtraidos = await filtrarEExtrairLista(loginInfo.page, json);
 
 		if (dadosExtraidos) {
+			await loginInfo.browser.close();
 			return true;
 		} else {
 			console.log("Nenhum dado foi extraído, fechando o navegador.");
